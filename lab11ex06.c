@@ -55,7 +55,7 @@ int main(void) {
   printf("p3? ");
   scanf("%lf %lf", &triangleA[2].x, &triangleA[2].y);
 
-  printf("p1:(%.1lf, %.lf), p2:(%.1lf, %.lf), p3:(%.1lf, %.lf), area=%.1lf", triangleA[0].x,triangleA[0].y, triangleA[1].x, triangleA[1].y, triangleA[2].x, triangleA[2].y, computeTriangleArea(triangleA));
+  printf("p1:(%.1lf, %.1lf), p2:(%.1lf, %.1lf), p3:(%.1lf, %.1lf), area=%.1lf", triangleA[0].x,triangleA[0].y, triangleA[1].x, triangleA[1].y, triangleA[2].x, triangleA[2].y, computeTriangleArea(triangleA));
   
 
 
