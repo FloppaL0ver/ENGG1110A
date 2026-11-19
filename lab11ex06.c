@@ -29,18 +29,22 @@ typedef struct {
 
 double computeDistance(Point p1, Point p2) {
   // Write your code here
-  return sqrt(pow(p1.x-p2.x ,2) + pow(p1.y-p2.y, 2) );
+  double a = p1.x-p2.x;
+  double b = p1.y-p2.y;
+  return sqrt(pow(a,2) + pow(b , 2) );
 }
 
 double computeTriangleArea(Point T[3]) {
   // Write your code here
   double a = computeDistance(T[0], T[1]);
   double b = computeDistance(T[1], T[2]);
-  double c = computeDistance(T[2], T[3]);
+  double c = computeDistance(T[2], T[0]);
   double s = (a+b+c)/2;
-  return sqrt(s* (s-a) * (s-b) * (s-c));
-  
-  
+  double res = s* (s-a) * (s-b) * (s-c);
+  //printf("\n%lf\n", res);
+  return sqrt(res);
+
+
 }
 
 int main(void) {
@@ -49,13 +53,15 @@ int main(void) {
 
   // Write your code here
   printf("p1? ");
-  scanf("%lf %lf", &triangleA[0].x, &triangleA[0].y);
+  scanf(" %lf %lf", &triangleA[0].x, &triangleA[0].y);
   printf("p2? ");
-  scanf("%lf %lf", &triangleA[1].x, &triangleA[1].y);
+  scanf(" %lf %lf", &triangleA[1].x, &triangleA[1].y);
   printf("p3? ");
-  scanf("%lf %lf", &triangleA[2].x, &triangleA[2].y);
+  scanf(" %lf %lf", &triangleA[2].x, &triangleA[2].y);
 
-  printf("p1:(%.1lf, %.1lf), p2:(%.1lf, %.1lf), p3:(%.1lf, %.1lf), area=%.1lf", triangleA[0].x,triangleA[0].y, triangleA[1].x, triangleA[1].y, triangleA[2].x, triangleA[2].y, computeTriangleArea(triangleA));
+  double area =  computeTriangleArea(triangleA);
+
+  printf("p1:(%.1lf, %.1lf), p2:(%.1lf, %.1lf), p3:(%.1lf, %.1lf), area=%.1lf", triangleA[0].x,triangleA[0].y, triangleA[1].x, triangleA[1].y, triangleA[2].x, triangleA[2].y, area);
   
 
 
