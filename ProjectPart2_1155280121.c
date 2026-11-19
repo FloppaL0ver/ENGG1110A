@@ -18,10 +18,8 @@
  * Student Name  : Paisal, Pavat Zhang
  * Student ID    : 1155280121
  * Class/Section : A
- * Date          : 16/11/2026
+ * Date          : 19/11/2026
  */
-
-//TODO: make explodebomb function better because now it's copy pasting two things
 
 // [DO NOT MODIFY]
 // DO NOT ADD new header files
@@ -88,9 +86,9 @@ void endGameMessage(int state[], int win); // e.g., win can take GAME_WON or GAM
 
 /* Define your helper functions prototype below. You can implement it somewhere else in this file.*/
 int handleInput(int board[][MAX_COLS], int size[], int state[]);
+void explodeAllDirs (int board[][MAX_COLS], int size[], int state[], int range, int row, int col, int bombtimer);
 int rayCheck(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange, int row, int col, int bombtimer);
 void saveGame(int board[][MAX_COLS], int size[], int state[]);
-void initialise2(int state[], int i, int j);
 void kickBomb(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange);
 void moveBomb(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange, int row, int col, int bombtimer);
 void endSpacePrinter(int state[], int field);
@@ -143,23 +141,6 @@ int main(void) {
     return 0;
 }
 
-void initialise2(int state[], int i, int j) {
-    state[PLAYER_ROW] = i;
-    state[PLAYER_COL] = j;
-    state[PLAYER_ALIVE] = 1;
-    state[EXPLOSION_RANGE] = INITIAL_RANGE;
-    state[BOMB_ACTIVE] = 0;
-    state[BOMB1_TIMER] = -1;
-    state[BOMB2_TIMER] = -1;
-    //BOMB_ROW, BOMB_COL, BRICKS_REMAIN will be done later
-    state[ACTION_COUNT] = 0;
-    state[MOVE_COUNT] = 0;
-    state[BOMB_COUNT] = 0;
-    state[BRICKS_DESTROYED] = 0;
-    state[BOOSTS_DROPPED] = 0;
-    state[BOOSTS_COLLECTED] = 0;
-}
-
 void initialise(int board[][MAX_COLS], int size[], int state[]) {
     int row,col;
     FILE *fptr = fopen("save.txt", "r");
@@ -200,7 +181,20 @@ void initialise(int board[][MAX_COLS], int size[], int state[]) {
                 break;
             board[i][j] = cur;
             if (cur == PLAYER) {
-                initialise2(state, i, j);
+                state[PLAYER_ROW] = i;
+                state[PLAYER_COL] = j;
+                state[PLAYER_ALIVE] = 1;
+                state[EXPLOSION_RANGE] = INITIAL_RANGE;
+                state[BOMB_ACTIVE] = 0;
+                state[BOMB1_TIMER] = -1;
+                state[BOMB2_TIMER] = -1;
+                //BOMB_ROW, BOMB_COL, BRICKS_REMAIN will be done later
+                state[ACTION_COUNT] = 0;
+                state[MOVE_COUNT] = 0;
+                state[BOMB_COUNT] = 0;
+                state[BRICKS_DESTROYED] = 0;
+                state[BOOSTS_DROPPED] = 0;
+                state[BOOSTS_COLLECTED] = 0;
             } else if (cur == BRICK_EMPTY || cur == BRICK_BOOST)
                 brick++;
         }
@@ -435,73 +429,48 @@ int rayCheck(int board[][MAX_COLS], int size[], int state[], int rowChange, int 
     return 0;
 }
 
+void explodeAllDirs (int board[][MAX_COLS], int size[], int state[], int range, int row, int col, int bombtimer) {
+    if (board[state[row]][state[col]] == PLAYER_ON_BOMB) {
+        state[PLAYER_ALIVE] = 0;
+    }
+    board[state[row]][state[col]] = EXPLODE;
+    //up
+    for (int i = 1; i <= range; i++) {
+        if (rayCheck(board, size, state, -i, 0, row, col, bombtimer)) {
+            break; //stop checking that direction
+        }
+    }
+    //down
+    for (int i = 1; i <= range; i++) {
+        if (rayCheck(board, size, state, i, 0, row, col, bombtimer)) {
+            break;
+        }
+    }
+    //left
+    for (int i = 1; i <= range; i++) {
+        if (rayCheck(board, size, state, 0, -i, row, col, bombtimer)) {
+            break;
+        }
+    }
+    //right
+    for (int i = 1; i <= range; i++) {
+        if (rayCheck(board, size, state, 0, i, row, col, bombtimer)) {
+            break;
+        }
+    }
+    state[bombtimer] = -1;
+    state[BOMB_ACTIVE]--;
+}
+
 void explodeBomb(int board[][MAX_COLS], int size[], int state[]) {
     // Explode the bomb; read the data from state[]/board[][]
     int range = state[EXPLOSION_RANGE];
     if (state[BOMB1_TIMER] == 0) {
-        if (board[state[BOMB1_ROW]][state[BOMB1_COL]] == PLAYER_ON_BOMB) {
-            state[PLAYER_ALIVE] = 0;
-        }
-        board[state[BOMB1_ROW]][state[BOMB1_COL]] = EXPLODE;
-        //up
-        for (int i = 1; i <= range; i++) {
-            if (rayCheck(board, size, state, -i, 0, BOMB1_ROW, BOMB1_COL, BOMB1_TIMER)) {
-                break; //stop checking that direction
-            }
-        }
-        //down
-        for (int i = 1; i <= range; i++) {
-            if (rayCheck(board, size, state, i, 0, BOMB1_ROW, BOMB1_COL, BOMB1_TIMER)) {
-                break;
-            }
-        }
-        //left
-        for (int i = 1; i <= range; i++) {
-            if (rayCheck(board, size, state, 0, -i, BOMB1_ROW, BOMB1_COL, BOMB1_TIMER)) {
-                break;
-            }
-        }
-        //right
-        for (int i = 1; i <= range; i++) {
-            if (rayCheck(board, size, state, 0, i, BOMB1_ROW, BOMB1_COL, BOMB1_TIMER)) {
-                break;
-            }
-        }
-        state[BOMB1_TIMER] = -1;
-        state[BOMB_ACTIVE]--;
+        //I didn't want to 'copy and paste' the function code twice but my implementation of the way I track bomb1 and bomb2 don't really allow me another method (at least that I can think of), so apologies for the inception of functions
+        explodeAllDirs(board, size, state, range, BOMB1_ROW, BOMB1_COL, BOMB1_TIMER);
     }
-
-    if (state[BOMB2_TIMER] == 0) { //so that both bombs can explode if their timers hit 0 but make sure bomb2 still exists
-        if (board[state[BOMB2_ROW]][state[BOMB2_COL]] == PLAYER_ON_BOMB) {
-            state[PLAYER_ALIVE] = 0;
-        }
-        board[state[BOMB2_ROW]][state[BOMB2_COL]] = EXPLODE;
-        //up
-        for (int i = 1; i <= range; i++) {
-            if (rayCheck(board, size, state, -i, 0, BOMB2_ROW, BOMB2_COL, BOMB2_TIMER)) {
-                break; //stop checking that direction
-            }
-        }
-        //down
-        for (int i = 1; i <= range; i++) {
-            if (rayCheck(board, size, state, i, 0, BOMB2_ROW, BOMB2_COL, BOMB2_TIMER)) {
-                break;
-            }
-        }
-        //left
-        for (int i = 1; i <= range; i++) {
-            if (rayCheck(board, size, state, 0, -i, BOMB2_ROW, BOMB2_COL, BOMB2_TIMER)) {
-                break;
-            }
-        }
-        //right
-        for (int i = 1; i <= range; i++) {
-            if (rayCheck(board, size, state, 0, i, BOMB2_ROW, BOMB2_COL, BOMB2_TIMER)) {
-                break;
-            }
-        }
-        state[BOMB_ACTIVE]--;
-        state[BOMB2_TIMER] = -1;
+    if (state[BOMB2_TIMER] == 0) { //so that both bombs can explode if their timers hit 0
+        explodeAllDirs(board, size, state, range, BOMB2_ROW, BOMB2_COL, BOMB2_TIMER);
     }
 }
 
