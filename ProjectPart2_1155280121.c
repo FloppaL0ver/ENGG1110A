@@ -18,8 +18,10 @@
  * Student Name  : Paisal, Pavat Zhang
  * Student ID    : 1155280121
  * Class/Section : A
- * Date          : 19/11/2026
+ * Date          : 26/11/2026
  */
+
+//TODO: is it correct that a player can kick a bomb as they die? Going out with a bang? Also add validation for fscanf
 
 // [DO NOT MODIFY]
 // DO NOT ADD new header files
@@ -54,12 +56,12 @@
 #define PLAYER_ALIVE 2 		// player status (for game end checks)
 #define EXPLOSION_RANGE 3 	// current bomb explosion range
 #define BOMB_ACTIVE 4 		// current bomb state
-#define BOMB1_ROW 5			// current bomb row index
-#define BOMB1_COL 6			// current bomb column index
-#define BOMB1_TIMER 7		// current bomb timer value
-#define BOMB2_ROW 8			// current bomb row index
-#define BOMB2_COL 9			// current bomb column index
-#define BOMB2_TIMER 10		// current bomb timer value
+#define BOMB1_ROW 5			// current bomb1 row index
+#define BOMB1_COL 6			// current bomb1 column index
+#define BOMB1_TIMER 7		// current bomb1 timer value
+#define BOMB2_ROW 8			// current bomb2 row index
+#define BOMB2_COL 9			// current bomb2 column index
+#define BOMB2_TIMER 10		// current bomb2 timer value
 #define ACTION_COUNT 11		// number of user valid actions (WASD + PB)
 #define MOVE_COUNT 12		// number of user valid movement (WASD)
 #define BOMB_COUNT 13		// total bombs dropped
@@ -93,9 +95,7 @@ void kickBomb(int board[][MAX_COLS], int size[], int state[], int rowChange, int
 void moveBomb(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange, int row, int col, int bombtimer);
 void endSpacePrinter(int state[], int field);
 
-
 /* DO NOT DECLARE EXTRA GLOBAL VARIABLES */
-
 int main(void) {
     // Suggested starter variables
     int board[MAX_ROWS][MAX_COLS];
@@ -169,7 +169,6 @@ void initialise(int board[][MAX_COLS], int size[], int state[]) {
         }
         fclose(fptr);
     }
-
     // new game from board.txt
     int brick = 0;
     FILE *fptr2 = fopen("board.txt", "r"); //assuming that there will always be board.txt available
@@ -205,6 +204,7 @@ void initialise(int board[][MAX_COLS], int size[], int state[]) {
     fclose(fptr2);
 }
 
+//PRINTING FUNCTIONS
 void displayBoard(int board[][MAX_COLS], int size[], int state[]) {
     for (int i = 0; i < size[0]; i++) {
         for (int j = 0; j < size[1]; j++) {
@@ -245,7 +245,63 @@ void displayLegend(int state[]) {
     printf("Legend: [] wall, () soft brick, @@ player, @B player on bomb, BB bomb, EX boost, ++ kick path, ## explosion\n");
 }
 
+void endGameMessage(int state[], int win) {
+    // Display End Game Message and Statistics
+    //0 is QUIT, 1 is WIN, 2 is LOST
+    if (win == 2) {
+        printf("[GAME OVER]: the player was caught in an explosion.\n");
+    } else if (win == 1) {
+        printf("[YOU WIN]: all soft bricks were destroyed.\n");
+    } else
+        printf("[GAME OVER]: the player quits.\n");
 
+    printf("+-----------------------+-----+\n");
+    printf("| Successful moves      |");
+    endSpacePrinter(state, MOVE_COUNT);
+    printf("+-----------------------+-----+\n");
+    printf("| Bombs dropped         |");
+    endSpacePrinter(state, BOMB_COUNT);
+    printf("+-----------------------+-----+\n");
+    printf("| Soft bricks destroyed |");
+    endSpacePrinter(state, BRICKS_DESTROYED);
+    printf("+-----------------------+-----+\n");
+    if (win != 1) {
+        printf("| Soft bricks remaining |");
+        endSpacePrinter(state, BRICKS_REMAINS);
+        printf("+-----------------------+-----+\n");
+    }
+}
+
+void endSpacePrinter(int state[], int field) {
+    int numDigits = 0;
+    int tmp = state[field];
+    do { //do this so that if the user does nothing and just quits then the spacing is still correct; I know this wasn't taught in the course.sorry!
+        numDigits++;
+        tmp/=10;
+    } while (tmp);
+    for (int i = 0; i < (4-numDigits); i++)
+        printf(" ");
+    printf("%d |\n", state[field]);
+}
+
+void saveGame(int board[][MAX_COLS], int size[], int state[]) {
+    FILE *fptr = fopen("save.txt", "w");
+    fprintf(fptr, "%d %d\n", size[0], size[1]);
+    for (int i = 0; i < STATE_FIELDS; i++)
+        fprintf(fptr, "%d ", state[i]);
+    fputc('\n', fptr); //found this in stdio.h documentation seems like putchar
+    for (int i = 0; i < size[0]; i++) {
+        for (int j = 0; j < size[1]; j++) {
+            fprintf(fptr, "%d ", board[i][j]); //initially I did this without space and wasted so much time debugging :(
+        }
+        fputc('\n', fptr);
+    }
+    printf("Game saved in save.txt.\n");
+    fclose(fptr);
+}
+
+
+//GENERAL FUNCTIONS
 int handleInput (int board[][MAX_COLS], int size[], int state[]) {
     printf("Command [W/A/S/D = move, B = bomb, P = pause, Q = save and quit]: ");
     char command;
@@ -311,16 +367,14 @@ int handleInput (int board[][MAX_COLS], int size[], int state[]) {
     return 0;
 }
 
-
 int movePlayer(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange) {
-    // Process a "move" command from user.
-    // return value indicates success or fail
     int potential = board[state[PLAYER_ROW]+rowChange][state[PLAYER_COL]+colChange];
     if (potential == BRICK_EMPTY || potential == BRICK_BOOST || potential == WALL ) {
         printf("Error: movement or kick is blocked.\n");
         return 1;
     } if (potential == BOMB) {
-        if (board[state[PLAYER_ROW]+2*rowChange][state[PLAYER_COL]+2*colChange] == BOMB) {
+        int pot2 = board[state[PLAYER_ROW]+2*rowChange][state[PLAYER_COL]+2*colChange];
+        if (pot2 == BOMB || pot2 == BRICK_EMPTY || pot2 == WALL || pot2 == BRICK_BOOST) {
             printf("Error: movement or kick is blocked.\n");
             return 1;
         }
@@ -340,36 +394,6 @@ int movePlayer(int board[][MAX_COLS], int size[], int state[], int rowChange, in
     return 0;
     
 }
-
-int dropBomb(int board[][MAX_COLS], int state[]) {
-    // Process a dropBomb command from user.
-    if (state[BOMB_ACTIVE] == 2) {
-        printf("Error: no available bombs.\n");
-        return 1;
-    } if (board[state[PLAYER_ROW]][state[PLAYER_COL]] == PLAYER_ON_BOMB) {
-        printf("Error: a bomb is already at this location.\n");
-        return 1;
-    }
-    if (!state[BOMB_ACTIVE] || (state[BOMB_ACTIVE] == 1 && state[BOMB2_TIMER] > 0)) {
-        state[BOMB1_TIMER] = BOMB_FUSE;
-        state[BOMB_ACTIVE]++;
-        state[BOMB1_ROW] = state[PLAYER_ROW];
-        state[BOMB1_COL] = state[PLAYER_COL];
-        board[state[BOMB1_ROW]][state[BOMB1_COL]] = PLAYER_ON_BOMB;
-        state[BOMB_COUNT]++;
-    } else {
-    //BOMB_ACTIVE == 1
-        state[BOMB2_TIMER] = BOMB_FUSE;
-        state[BOMB_ACTIVE]++;
-        state[BOMB2_ROW] = state[PLAYER_ROW];
-        state[BOMB2_COL] = state[PLAYER_COL];
-        board[state[BOMB2_ROW]][state[BOMB2_COL]] = PLAYER_ON_BOMB;
-        state[BOMB_COUNT]++;
-    }
-    return 0;
-}
-
-
 
 void advanceTime(int board[][MAX_COLS], int size[], int state[]) {
     // Advance game time; explode bomb if needed
@@ -393,6 +417,114 @@ void advanceTime(int board[][MAX_COLS], int size[], int state[]) {
             //printf("Explosion\n\n");
             explodeBomb(board, size, state); //will explode one or both bombs
     }
+}
+
+
+//BOMB FUNCTIONS
+int dropBomb(int board[][MAX_COLS], int state[]) {
+    // Process a dropBomb command from user.
+    if (state[BOMB_ACTIVE] == 2) {
+        printf("Error: no available bombs.\n");
+        return 1;
+    } if (board[state[PLAYER_ROW]][state[PLAYER_COL]] == PLAYER_ON_BOMB) {
+        printf("Error: a bomb is already at this location.\n");
+        return 1;
+    }
+    if (!state[BOMB_ACTIVE] || (state[BOMB_ACTIVE] == 1 && state[BOMB2_TIMER] > 0)) {
+        state[BOMB1_TIMER] = BOMB_FUSE;
+        state[BOMB_ACTIVE]++;
+        state[BOMB1_ROW] = state[PLAYER_ROW];
+        state[BOMB1_COL] = state[PLAYER_COL];
+        board[state[BOMB1_ROW]][state[BOMB1_COL]] = PLAYER_ON_BOMB;
+        state[BOMB_COUNT]++;
+    } else {
+        //BOMB_ACTIVE == 1
+        state[BOMB2_TIMER] = BOMB_FUSE;
+        state[BOMB_ACTIVE]++;
+        state[BOMB2_ROW] = state[PLAYER_ROW];
+        state[BOMB2_COL] = state[PLAYER_COL];
+        board[state[BOMB2_ROW]][state[BOMB2_COL]] = PLAYER_ON_BOMB;
+        state[BOMB_COUNT]++;
+    }
+    return 0;
+}
+
+void kickBomb(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange) {
+    if (state[BOMB1_ROW] == state[PLAYER_ROW]+rowChange && state[BOMB1_COL] == state[PLAYER_COL]+colChange && state[BOMB1_TIMER] > 0) {
+        moveBomb(board, size, state, rowChange, colChange, BOMB1_ROW, BOMB1_COL, BOMB1_TIMER); //needs BOMB1 row and col so can set position after move
+    } else if (state[BOMB2_ROW] == state[PLAYER_ROW]+rowChange && state[BOMB2_COL] == state[PLAYER_COL]+colChange && state[BOMB2_TIMER] > 0)
+        moveBomb(board, size, state, rowChange, colChange, BOMB2_ROW, BOMB2_COL, BOMB2_TIMER);
+}
+//maybe I could've come up with more imaginative names
+void moveBomb(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange, int row, int col, int bombtimer) {
+    board[state[row]][state[col]] = KICK;
+    for (int i = 1; i < MAX_COLS; i++){ //doesn't matter what the condition is could also just do while loop with i
+        int potential = board[state[row]+ i * rowChange][state[col]+ i * colChange];
+        if (potential == CORRIDOR) {
+            board[state[row]+ i * rowChange][state[col]+ i * colChange] = KICK;
+            continue;
+        }
+        if (potential == BRICK_EMPTY || potential == BRICK_BOOST || potential == BOOST || potential == WALL) {
+            board[state[row]+ (i-1) * rowChange][state[col]+ (i-1) * colChange] = BOMB;
+            state[row] += (i-1) * rowChange;
+            state[col] += (i-1) * colChange;
+        }
+        else if (potential == EXPLODE || potential == EXPLODE_BOOST) {
+            state[row] += i * rowChange; //explodes at ray
+            state[col] += i * colChange;
+            state[bombtimer] = 0;
+            explodeBomb(board, size, state);
+        }
+        break; //not possible to be player, player_on_bomb, or kick
+    }
+}
+
+void explodeBomb(int board[][MAX_COLS], int size[], int state[]) {
+    // Explode the bomb; read the data from state[]/board[][]
+    int range = state[EXPLOSION_RANGE];
+    if (state[BOMB1_TIMER] == 0) {
+        //I didn't want to 'copy and paste' the function code twice but my implementation of the way I track bomb1 and bomb2 doesn't really allow me another method (at least that I can think of), so apologies for the function inception
+        explodeAllDirs(board, size, state, range, BOMB1_ROW, BOMB1_COL, BOMB1_TIMER);
+    }
+    if (state[BOMB2_TIMER] == 0) { //so that both bombs can explode if their timers hit 0
+        explodeAllDirs(board, size, state, range, BOMB2_ROW, BOMB2_COL, BOMB2_TIMER);
+    }
+}
+
+void explodeAllDirs (int board[][MAX_COLS], int size[], int state[], int range, int row, int col, int bombtimer) {
+    int bombTile = board[state[row]][state[col]];
+    if (bombTile == PLAYER_ON_BOMB) {
+        state[PLAYER_ALIVE] = 0;
+    }
+    if (bombTile != EXPLODE_BOOST)
+        board[state[row]][state[col]] = EXPLODE; //if the bomb is kicked into a soft boost brick that explodes that very turn then it should remain EXPLODE_BOOST
+
+    //up
+    for (int i = 1; i <= range; i++) {
+        if (rayCheck(board, size, state, -i, 0, row, col, bombtimer)) {
+            break; //stop checking that direction
+        }
+    }
+    //down
+    for (int i = 1; i <= range; i++) {
+        if (rayCheck(board, size, state, i, 0, row, col, bombtimer)) {
+            break;
+        }
+    }
+    //left
+    for (int i = 1; i <= range; i++) {
+        if (rayCheck(board, size, state, 0, -i, row, col, bombtimer)) {
+            break;
+        }
+    }
+    //right
+    for (int i = 1; i <= range; i++) {
+        if (rayCheck(board, size, state, 0, i, row, col, bombtimer)) {
+            break;
+        }
+    }
+    state[bombtimer] = -1;
+    state[BOMB_ACTIVE]--;
 }
 
 int rayCheck(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange, int row, int col, int bombtimer) {
@@ -422,139 +554,9 @@ int rayCheck(int board[][MAX_COLS], int size[], int state[], int rowChange, int 
         board[state[row]+rowChange][state[col]+colChange] = EXPLODE_BOOST;
     } else if (potential == BOMB || potential == PLAYER_ON_BOMB) {
         state[BOMB1_TIMER] = 0;
-        state[BOMB2_TIMER] = 0; //set both to 0 first because I don't want to keep track of which bomb is currently exploding
-        state[bombtimer] = 1; //does not re-explode
+        state[BOMB2_TIMER] = 0; //set both to 0 first because I can't keep track of which bomb is currently exploding and this seems simpler than writing code to track bombs
+        state[bombtimer] = 1; //does not re-explode 
         explodeBomb(board, size, state);
     }
     return 0;
-}
-
-void explodeAllDirs (int board[][MAX_COLS], int size[], int state[], int range, int row, int col, int bombtimer) {
-    if (board[state[row]][state[col]] == PLAYER_ON_BOMB) {
-        state[PLAYER_ALIVE] = 0;
-    }
-    board[state[row]][state[col]] = EXPLODE;
-    //up
-    for (int i = 1; i <= range; i++) {
-        if (rayCheck(board, size, state, -i, 0, row, col, bombtimer)) {
-            break; //stop checking that direction
-        }
-    }
-    //down
-    for (int i = 1; i <= range; i++) {
-        if (rayCheck(board, size, state, i, 0, row, col, bombtimer)) {
-            break;
-        }
-    }
-    //left
-    for (int i = 1; i <= range; i++) {
-        if (rayCheck(board, size, state, 0, -i, row, col, bombtimer)) {
-            break;
-        }
-    }
-    //right
-    for (int i = 1; i <= range; i++) {
-        if (rayCheck(board, size, state, 0, i, row, col, bombtimer)) {
-            break;
-        }
-    }
-    state[bombtimer] = -1;
-    state[BOMB_ACTIVE]--;
-}
-
-void explodeBomb(int board[][MAX_COLS], int size[], int state[]) {
-    // Explode the bomb; read the data from state[]/board[][]
-    int range = state[EXPLOSION_RANGE];
-    if (state[BOMB1_TIMER] == 0) {
-        //I didn't want to 'copy and paste' the function code twice but my implementation of the way I track bomb1 and bomb2 don't really allow me another method (at least that I can think of), so apologies for the inception of functions
-        explodeAllDirs(board, size, state, range, BOMB1_ROW, BOMB1_COL, BOMB1_TIMER);
-    }
-    if (state[BOMB2_TIMER] == 0) { //so that both bombs can explode if their timers hit 0
-        explodeAllDirs(board, size, state, range, BOMB2_ROW, BOMB2_COL, BOMB2_TIMER);
-    }
-}
-
-void endGameMessage(int state[], int win) {
-    // Display End Game Message and Statistics
-    //0 is QUIT, 1 is WIN, 2 is LOST
-    if (win == 2) {
-        printf("[GAME OVER]: the player was caught in an explosion.\n");
-    } else if (win == 1) {
-        printf("[YOU WIN]: all soft bricks were destroyed.\n");
-    } else
-        printf("[GAME OVER]: the player quits.\n");
-
-    printf("+-----------------------+-----+\n");
-    printf("| Successful moves      |");
-    endSpacePrinter(state, MOVE_COUNT);
-    printf("+-----------------------+-----+\n");
-    printf("| Bombs dropped         |");
-    endSpacePrinter(state, BOMB_COUNT);
-    printf("+-----------------------+-----+\n");
-    printf("| Soft bricks destroyed |");
-    endSpacePrinter(state, BRICKS_DESTROYED);
-    printf("+-----------------------+-----+\n");
-    if (win != 1) {
-        printf("| Soft bricks remaining |");
-        endSpacePrinter(state, BRICKS_REMAINS);
-        printf("+-----------------------+-----+\n");
-    }
-}
-
-void endSpacePrinter(int state[], int field) {
-    int numDigits = 0;
-    int tmp = state[field];
-    do { //do this so that if the user does nothing and just quits then the spacing is still correct; I know this wasn't taught in the course.sorry!
-        numDigits++;
-        tmp/=10;
-    } while (tmp);
-    for (int i = 0; i < (4-numDigits); i++)
-        printf(" ");
-    printf("%d |\n", state[field]);
-}
-
-void saveGame(int board[][MAX_COLS], int size[], int state[]) {
-    FILE *fptr = fopen("save.txt", "w");
-    fprintf(fptr, "%d %d\n", size[0], size[1]);
-    for (int i = 0; i < STATE_FIELDS; i++)
-        fprintf(fptr, "%d ", state[i]);
-    fputc('\n', fptr); //found this in stdio.h documentation seems like putchar
-    for (int i = 0; i < size[0]; i++) {
-        for (int j = 0; j < size[1]; j++) {
-            fprintf(fptr, "%d ", board[i][j]); //initially I did this without space and wasted so much time debugging :(
-        }
-        fputc('\n', fptr);
-    }
-    printf("Game saved in save.txt.\n");
-    fclose(fptr);
-}
-
-void kickBomb(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange) {
-    if (state[BOMB1_ROW] == state[PLAYER_ROW]+rowChange && state[BOMB1_COL] == state[PLAYER_COL]+colChange && state[BOMB1_TIMER] > 0) {
-        moveBomb(board, size, state, rowChange, colChange, BOMB1_ROW, BOMB1_COL, BOMB1_TIMER); //needs BOMB1 row and col so can set position after move
-    } else if (state[BOMB2_ROW] == state[PLAYER_ROW]+rowChange && state[BOMB2_COL] == state[PLAYER_COL]+colChange && state[BOMB2_TIMER] > 0)
-        moveBomb(board, size, state, rowChange, colChange, BOMB2_ROW, BOMB2_COL, BOMB2_TIMER);
-}
-//maybe I could've come up with more imaginative names
-void moveBomb(int board[][MAX_COLS], int size[], int state[], int rowChange, int colChange, int row, int col, int bombtimer) {
-    board[state[row]][state[col]] = KICK;
-    for (int i = 1; i <= MAX_COLS-1; i++){ //doesn't matter what condition is could also just do while loop with i
-        int potential = board[state[row]+ i * rowChange][state[col]+ i * colChange];
-        if (potential == CORRIDOR) {
-            board[state[row]+ i * rowChange][state[col]+ i * colChange] = KICK;
-            continue;
-        }
-        if (potential == BRICK_EMPTY || potential == BRICK_BOOST || potential == BOOST || potential == WALL) {
-            board[state[row]+ (i-1) * rowChange][state[col]+ (i-1) * colChange] = BOMB;
-            state[row] += (i-1) * rowChange;
-            state[col] += (i-1) * colChange;
-        }
-        else if (potential == EXPLODE || potential == EXPLODE_BOOST) {
-            state[row] += i * rowChange; //explodes at ray
-            state[col] += i * colChange;
-            state[bombtimer] = 0;
-            explodeBomb(board, size, state);
-        }
-        break; //not possible to be player, player_on_bomb, or kick
-    }
 }

@@ -18,7 +18,7 @@
  * Student Name  : Paisal, Pavat Zhang
  * Student ID    : 1155280121
  * Class/Section : A
- * Date          : 16/11/2026
+ * Date          : 26/11/2026
  */
 
 
@@ -70,7 +70,7 @@
 #define GAME_WON 1
 #define GAME_LOST 2
 
-// [DO NOT MODIFY] 
+// [DO NOT MODIFY]
 void initialise(int board[][MAX_COLS], int size[], int state[]);
 void displayBoard(int board[][MAX_COLS], int size[], int state[]);
 void displayLegend(int state[]);
@@ -98,15 +98,6 @@ int main(void) {
     // Initialize the game board
     initialise(board, size, state);
 
-    // Pseudocode
-    /* While the game is still running
-            Display Board, Legend, and ask for input 
-            Read the user input and process it
-            Check End Game condition
-        
-       Display Board and Legend
-       Display End Game Message and Statistics
-    */
     //return value of 1 in the functions means unsuccessful :)
     while (1) {
         if (!state[BRICKS_REMAINS] || !state[PLAYER_ALIVE])
@@ -214,11 +205,11 @@ void initialise(int board[][MAX_COLS], int size[], int state[]) {
                 state[ACTION_COUNT] = 0;
                 state[MOVE_COUNT] = 0;
                 state[BOMB_COUNT] = 0;
-                state[BRICKS_REMAINS] = 8;
                 state[BRICKS_DESTROYED] = 0;
                 state[BOOSTS_DROPPED] = 0;
                 state[BOOSTS_COLLECTED] = 0;
-            }
+            } else if (cur == BRICK_EMPTY || cur == BRICK_BOOST)
+                state[BRICKS_REMAINS]++;
         }
     }
 
@@ -283,7 +274,7 @@ int movePlayer(int board[][MAX_COLS], int size[], int state[], int rowChange, in
         state[BOOSTS_COLLECTED]++;
     }
     return 0;
-    
+
 }
 
 int dropBomb(int board[][MAX_COLS], int state[]) {
@@ -299,7 +290,7 @@ int dropBomb(int board[][MAX_COLS], int state[]) {
     board[state[BOMB_ROW]][state[BOMB_COL]] = PLAYER_ON_BOMB;
     state[BOMB_COUNT]++;
     return 0;
-    
+
 }
 
 
